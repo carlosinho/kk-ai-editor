@@ -27,6 +27,11 @@ function updateAIStatus(message) {
 }
 
 jQuery(document).ready(function($) {
+    // Hide the AI button in the classic editor
+    if ($('#content').length && $('#ai_generate_body_button').length) {
+        $('#ai_generate_body_button').hide();
+    }
+
     $('#ai_generate_body_button').on('click', function(e) {
         e.preventDefault();
 
