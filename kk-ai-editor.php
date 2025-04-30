@@ -24,7 +24,7 @@ require_once 'prompt-lib-general.php';
 //////////////////////
 // DEFINE PARAMETERS
 
-// Max sections generated
+// Max sections generated. This helps to protect against infinite looping.
 define('AI_EDIT_MAX_SECTIONS', 16);
 
 // Model temperature
