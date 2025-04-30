@@ -13,12 +13,13 @@ const EDIT_SYS_PROMPT_V1 = 'You are a precise copy-editor with 10 years of exper
 
 const EDIT_PROMPT_V1 = 'Below is some text to polish. Please:
 
+- Pay SPECIAL ATTENTION to typos and wrong word choice.
 - Correct only the sentences or phrases that contain grammar, punctuation, or style errors.
-- Pay special attention to typos and wrong word choice.
 - Leave any correct sentences or phrases verbatim.
 - Never add any word from the forbidden list unless it is already in the source.
 - Do not add, remove, or rephrase anything else.
 - Do not add any em dashes. Do not correct instances where there are spaces on either side of a dash. 
+- Leave the subheading levels and capitalization of the subheads intact. Still fix grammar/typos if any.
 - Output only the fully revised text (no comments or explanations).
 - Do not shorten the text in any way. Complete the instruction until the answer exceeds your window size.
 
