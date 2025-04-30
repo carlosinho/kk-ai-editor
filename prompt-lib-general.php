@@ -38,7 +38,7 @@ const EDIT_PROMPT_V2 = 'Improve grammar and style in the text below. Please:
 - Do not make changes for the sake of it. If some sentence is already correct then do not change it.
 - Never add any word from the forbidden list unless it is already in the source.
 - Do not add any em dashes to the text. Do not correct instances where there are spaces on either side of a dash. 
-- Leave the capitalization of the subheads intact.
+- Leave the subheading levels and capitalization of the subheads intact. Still fix grammar/typos if any.
 - Leave any placeholder elements intact. Like placeholders for images, etc.
 - Output only the fully revised text (no comments or explanations).
 - Do not shorten the text in any way. Complete the instruction until the answer exceeds your window size.
@@ -60,7 +60,7 @@ const EDIT_PROMPT_V3 = 'Improve grammar and style in the text below. Please:
 - Correct any sentences or phrases that contain grammar and punctuation errors.
 - Never add any word from the forbidden list unless it is already in the source.
 - Do not add any em dashes to the text. Do not correct instances where there are spaces on either side of a dash. 
-- Leave the capitalization of the subheads intact.
+- Leave the subheading levels and capitalization of the subheads intact. Still fix grammar/typos if any.
 - Leave any placeholder elements intact. Like placeholders for images, etc.
 - Output only the fully revised text (no comments or explanations).
 - Do not shorten the text in any way. Complete the instruction until the answer exceeds your window size.

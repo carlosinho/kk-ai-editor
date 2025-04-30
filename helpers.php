@@ -283,6 +283,55 @@ function kk_ai_editor_toggle_callback($args) {
     <?php
 }
 
+/**
+ * Callback for the LLM model selection dropdown.
+ */
+function kk_ai_editor_model_dropdown_callback() {
+    $models = [
+        'gpt-4o-2024-11-20' => 'OpenAI',
+        'gpt-4o' => 'OpenAI',
+        'gpt-4o-mini' => 'OpenAI',
+        //'gpt-4.1' => 'OpenAI',
+        //'gpt-4.1-mini' => 'OpenAI',
+        'anthropic/claude-3.7-sonnet' => 'OpenRouter',
+        'google/gemini-2.0-flash-001' => 'OpenRouter',
+    ];
+    $selected = get_option('kk_ai_editor_model', 'gpt-4o');
+    echo '<select name="kk_ai_editor_model">';
+    foreach ($models as $model => $provider) {
+        printf(
+            '<option value="%s" %s>%s (%s)</option>',
+            esc_attr($model),
+            selected($selected, $model, false),
+            esc_html($model),
+            esc_html($provider)
+        );
+    }
+    echo '</select>';
+}
+
+/**
+ * Callback for the prompt style selection dropdown.
+ */
+function kk_ai_editor_prompt_style_dropdown_callback() {
+    $options = [
+        'strict' => 'Strict editing',
+        'loose' => 'Loose editing',
+        'looser' => 'Even looser editing',
+    ];
+    $selected = get_option('kk_ai_editor_prompt_style', 'strict');
+    echo '<select name="kk_ai_editor_prompt_style">';
+    foreach ($options as $value => $label) {
+        printf(
+            '<option value="%s" %s>%s</option>',
+            esc_attr($value),
+            selected($selected, $value, false),
+            esc_html($label)
+        );
+    }
+    echo '</select>';
+}
+
 ////////////////////////////////////
 // DEBUG/CLEANUP FUNCTIONS, SANITIZATION
 ////////////////////////////////////

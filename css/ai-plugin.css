@@ -3,6 +3,32 @@
  * This file contains all styles for the AI content generation WordPress plugin
  */
 
+#my-plugin-lock-modal {
+    position: fixed;
+    z-index: 99999;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.my-plugin-lock-modal-content {
+    background: #fff;
+    padding: 2em 3em;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+}
+.my-plugin-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0073aa;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 2em auto 4em;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
 /* Loading spinner animation used during API requests */
 .spin { 
     display: inline-block;

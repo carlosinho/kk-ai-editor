@@ -21,6 +21,14 @@ class KK_AI_Editor_OpenAI_Client {
 
     // MODEL PRICING ($ per 1M tokens)
     private $model_pricing = [
+        'gpt-4.1' => [
+            'input' => 2.00,
+            'output' => 8.00
+        ],
+        'gpt-4.1-mini' => [
+            'input' => 0.40,
+            'output' => 1.60
+        ],
         'chatgpt-4o-latest' => [
             'input' => 5.00,
             'output' => 15.00

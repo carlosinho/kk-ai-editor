@@ -3,7 +3,7 @@
  * Plugin Name: AI Editor at Your Service
  * Plugin URI: https://wpwork.shop/
  * Description: Your friendly AI editor - takes your post content and edits it.
- * Version: 0.1.0
+ * Version: 0.9.0
  * Author: Karol K
  * Author URI: https://wpwork.shop/
  * License: GPL-2.0
@@ -25,17 +25,49 @@ require_once 'prompt-lib-general.php';
 // DEFINE PARAMETERS
 
 // Max sections generated
-define('AI_EDIT_MAX_SECTIONS', 15);
+define('AI_EDIT_MAX_SECTIONS', 16);
 
-// Editing model
-define('AI_MODEL_EDIT', 'gpt-4o');
-define('AI_MODEL_EDIT_TEMP', 1);
-
-const WORKING_EDIT_SYS_PROMPT = EDIT_SYS_PROMPT_V2;
-const WORKING_EDIT_PROMPT = EDIT_PROMPT_V2;
+// Model temperature
+define('KK_AI_MODEL_EDIT_TEMP', 1);
 
 //////////////////////
 // FUNCTIONS
+
+// Add model-endpoint mapping helper
+function kk_ai_editor_get_model_endpoint($model) {
+    $openai_models = [
+        'gpt-4o-2024-11-20',
+        'gpt-4o',
+        'gpt-4o-mini',
+        'gpt-4.1',
+        'gpt-4.1-mini',
+    ];
+    $openrouter_models = [
+        'anthropic/claude-3.7-sonnet',
+        'google/gemini-2.0-flash-001',
+    ];
+    if (in_array($model, $openai_models, true)) {
+        return 'openai';
+    } elseif (in_array($model, $openrouter_models, true)) {
+        return 'openrouter';
+    }
+    return 'openai'; // fallback
+}
+
+// Add helper to get the correct prompt pair
+function kk_ai_editor_get_working_prompts() {
+    $style = get_option('kk_ai_editor_prompt_style', 'strict');
+    switch ($style) {
+        case 'strict':
+            return [EDIT_SYS_PROMPT_V1, EDIT_PROMPT_V1];
+        case 'loose':
+            return [EDIT_SYS_PROMPT_V2, EDIT_PROMPT_V2];
+        case 'looser':
+            return [EDIT_SYS_PROMPT_V3, EDIT_PROMPT_V3];
+        default:
+            return [EDIT_SYS_PROMPT_V1, EDIT_PROMPT_V1];
+    }
+}
 
 /**
  * AJAX handler for generating AI body content.
@@ -132,15 +164,20 @@ function kk_ai_editor_process_content_generation($process_id) {
     }
 
     try {
-        $api_key = sanitize_text_field(get_option('ai_plugin_api_key'));
-        $openrouter_key = sanitize_text_field(get_option('ai_plugin_openrouter_key'));
-        if (empty($api_key) || empty($openrouter_key)) {
-            //error_log('API keys missing');
-            throw new Exception('API key not configured');
+        $api_key = sanitize_text_field(get_option('kk_ai_editor_api_key'));
+        $openrouter_key = sanitize_text_field(get_option('kk_ai_editor_openrouter_key'));
+        $model = get_option('kk_ai_editor_model', 'gpt-4o');
+        $endpoint_type = kk_ai_editor_get_model_endpoint($model);
+        if (empty($api_key) && $endpoint_type === 'openai') {
+            throw new Exception('OpenAI API key not configured');
         }
-
+        if (empty($openrouter_key) && $endpoint_type === 'openrouter') {
+            throw new Exception('OpenRouter API key not configured');
+        }
         error_log('Current step before processing: ' . $data['step']);
         //error_log('Current data state: ' . print_r($data, true));
+        
+        list($working_sys_prompt, $working_user_prompt) = kk_ai_editor_get_working_prompts();
         
         switch ($data['step']) {
             case 'intro':
@@ -155,13 +192,16 @@ function kk_ai_editor_process_content_generation($process_id) {
                 }
 
                 // PREPARE EDIT PROMPT
-                $prompt = WORKING_EDIT_PROMPT . $pre_intro_content;
+                $prompt = $working_user_prompt . $pre_intro_content;
                 
                 //error_log('Edit prompt: ' . $prompt); // Debug log
                 
                 // GENERATE EDIT
-                $edit1_gpt = new KK_AI_Editor_OpenAI_Client($api_key, AI_MODEL_EDIT, AI_MODEL_EDIT_TEMP, WORKING_EDIT_SYS_PROMPT);
-                //$edit1_gpt = new KK_AI_Editor_OpenRouter_Client($openrouter_key, AI_MODEL_EDIT, AI_MODEL_EDIT_TEMP, WORKING_EDIT_SYS_PROMPT);
+                $edit1_gpt = '';
+                if ($endpoint_type === 'openai')
+                    $edit1_gpt = new KK_AI_Editor_OpenAI_Client($api_key, $model, KK_AI_MODEL_EDIT_TEMP, $working_sys_prompt);
+                else
+                    $edit1_gpt = new KK_AI_Editor_OpenRouter_Client($openrouter_key, $model, KK_AI_MODEL_EDIT_TEMP, $working_sys_prompt);
                 $generated_edit = $edit1_gpt->generate_content($prompt);
                 
                 // Track usage stats
@@ -170,7 +210,7 @@ function kk_ai_editor_process_content_generation($process_id) {
                 $total_cost = $edit1_gpt->get_last_total_cost();
                 //error_log("Edit intro - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
                 if ($data['post_id'] > 0) {
-                    $new_log = kk_ai_editor_append_to_usage_log($data['post_id'], "Edit intro - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
+                    $new_log = kk_ai_editor_append_to_usage_log($data['post_id'], "Edit intro - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost ($model)");
                     $new_totals = kk_ai_editor_update_usage_totals($data['post_id'], $prompt_tokens, $completion_tokens, $total_cost);
                     $new_totals['usage_log'] = $new_log;
                     $data['new_totals'] = $new_totals;
@@ -215,12 +255,15 @@ function kk_ai_editor_process_content_generation($process_id) {
                     error_log('Current section content: ' . $section); // Debug log
                     
                     // PREPARE SECTION EDIT PROMPT
-                    $prompt = WORKING_EDIT_PROMPT . $section;
+                    $prompt = $working_user_prompt . $section;
                     error_log('Section edit prompt: ' . $prompt); // Debug log
 
                     // GENERATE EDIT
-                    $editn_gpt = new KK_AI_Editor_OpenAI_Client($api_key, AI_MODEL_EDIT, AI_MODEL_EDIT_TEMP, WORKING_EDIT_SYS_PROMPT);
-                    //$editn_gpt = new KK_AI_Editor_OpenRouter_Client($openrouter_key, AI_MODEL_EDIT, AI_MODEL_EDIT_TEMP, WORKING_EDIT_SYS_PROMPT);
+                    $editn_gpt = '';
+                    if ($endpoint_type === 'openai')
+                        $editn_gpt = new KK_AI_Editor_OpenAI_Client($api_key, $model, KK_AI_MODEL_EDIT_TEMP, $working_sys_prompt);
+                    else
+                        $editn_gpt = new KK_AI_Editor_OpenRouter_Client($openrouter_key, $model, KK_AI_MODEL_EDIT_TEMP, $working_sys_prompt);
                     $section_content = $editn_gpt->generate_content($prompt);
                     
                     // Track usage stats
@@ -229,7 +272,7 @@ function kk_ai_editor_process_content_generation($process_id) {
                     $total_cost = $editn_gpt->get_last_total_cost();
                     //error_log("Edit section " . ($data['current_section'] + 1) . " - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
                     if ($data['post_id'] > 0) {
-                        $new_log = kk_ai_editor_append_to_usage_log($data['post_id'], "Edit section " . ($data['current_section'] + 1) . " - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
+                        $new_log = kk_ai_editor_append_to_usage_log($data['post_id'], "Edit section " . ($data['current_section'] + 1) . " - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost ($model)");
                         $new_totals = kk_ai_editor_update_usage_totals($data['post_id'], $prompt_tokens, $completion_tokens, $total_cost);
                         $new_totals['usage_log'] = $new_log;
                         $data['new_totals'] = $new_totals;
@@ -416,6 +459,30 @@ function kk_ai_editor_register_settings() {
     // Register settings
     register_setting('kk_ai_editor_options_group', 'kk_ai_editor_api_key');
     register_setting('kk_ai_editor_options_group', 'kk_ai_editor_openrouter_key');
+    // Register model setting with sanitization
+    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_model', [
+        'type' => 'string',
+        'sanitize_callback' => function($value) {
+            $allowed = [
+                'gpt-4o-2024-11-20',
+                'gpt-4o',
+                'gpt-4o-mini',
+                'gpt-4.1',
+                'gpt-4.1-mini',
+                'anthropic/claude-3.7-sonnet',
+                'google/gemini-2.0-flash-001',
+            ];
+            return in_array($value, $allowed, true) ? sanitize_text_field($value) : 'gpt-4o';
+        },
+    ]);
+    // Register prompt style setting with sanitization
+    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_prompt_style', [
+        'type' => 'string',
+        'sanitize_callback' => function($value) {
+            $allowed = ['strict', 'loose', 'looser'];
+            return in_array($value, $allowed, true) ? sanitize_text_field($value) : 'strict';
+        },
+    ]);
 
     // API Keys section
     add_settings_section(
@@ -440,6 +507,24 @@ function kk_ai_editor_register_settings() {
         'kk_ai_editor_openrouter_key',
         'OpenRouter API Key',
         'kk_ai_editor_openrouter_key_callback',
+        'kk-ai-editor',
+        'kk_ai_editor_main_section'
+    );
+
+    // Add model dropdown field
+    add_settings_field(
+        'kk_ai_editor_model',
+        'LLM Model',
+        'kk_ai_editor_model_dropdown_callback',
+        'kk-ai-editor',
+        'kk_ai_editor_main_section'
+    );
+
+    // Add prompt style dropdown field
+    add_settings_field(
+        'kk_ai_editor_prompt_style',
+        'Editing Style',
+        'kk_ai_editor_prompt_style_dropdown_callback',
         'kk-ai-editor',
         'kk_ai_editor_main_section'
     );

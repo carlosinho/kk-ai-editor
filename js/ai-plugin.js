@@ -1,3 +1,31 @@
+// Modal lock for both Classic and Block Editor
+window.myPluginShowLockModal = function(message = 'Processing, please wait...') {
+    if (document.getElementById('my-plugin-lock-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'my-plugin-lock-modal';
+    modal.innerHTML = `
+        <div class="my-plugin-lock-modal-content">
+            <div class="my-plugin-spinner"></div>
+            <p class="my-plugin-modal-status">${message}</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
+
+window.myPluginHideLockModal = function() {
+    const modal = document.getElementById('my-plugin-lock-modal');
+    if (modal) modal.remove();
+};
+
+// Helper to update both sidebar and modal status
+function updateAIStatus(message) {
+    jQuery('#ai_generate_status').text(message);
+    var modalStatus = document.querySelector('.my-plugin-modal-status');
+    if (modalStatus) {
+        modalStatus.textContent = message;
+    }
+}
+
 jQuery(document).ready(function($) {
     $('#ai_generate_body_button').on('click', function(e) {
         e.preventDefault();
@@ -13,6 +41,11 @@ jQuery(document).ready(function($) {
         $btn.prop('disabled', true)
             .html('<span class="dashicons dashicons-update spin"></span> Editing...')
             .data('original-text', originalText);  // Store for later use
+
+        // Show modal lock
+        if (window.myPluginShowLockModal) {
+            window.myPluginShowLockModal('Processing post, please wait...');
+        }
 
         // Get current editor content and title
         var currentContent = '';
@@ -58,13 +91,13 @@ jQuery(document).ready(function($) {
                     var processId = response.data.process_id;
                     checkProgress(processId);
                 } else {
-                    $status.text('Error: ' + (response.data || 'Unknown error'));
+                    updateAIStatus('Error: ' + (response.data || 'Unknown error'));
                     $btn.prop('disabled', false).html(originalText);
                 }
             },
             error: function(xhr, status, error) {
                 console.error('AJAX Error:', {xhr: xhr, status: status, error: error});
-                $status.text('AJAX error: ' + (error || 'Unknown error') + ' (Status: ' + status + ')');
+                updateAIStatus('AJAX error: ' + (error || 'Unknown error') + ' (Status: ' + status + ')');
                 $btn.prop('disabled', false).html(originalText);
             }
         });
@@ -102,7 +135,7 @@ jQuery(document).ready(function($) {
                             }
                         }
 
-                        $('#ai_generate_status').text('Content edited successfully.');
+                        updateAIStatus('Content edited successfully.');
                         
                         if (response.data.new_totals) {
                             updateCustomFieldsInUI(response.data.new_totals);
@@ -112,36 +145,55 @@ jQuery(document).ready(function($) {
                         $('#ai_generate_body_button')
                             .prop('disabled', false)
                             .html('<span class="dashicons dashicons-editor-paragraph"></span> Edit Post');
+
+                        // Hide modal lock
+                        if (window.myPluginHideLockModal) {
+                            window.myPluginHideLockModal();
+                        }
                     } else if (response.data.status === 'error') {
-                        $('#ai_generate_status').text('Error: ' + response.data.error);
+                        updateAIStatus('Error: ' + response.data.error);
                         $('.button').prop('disabled', false)
                             .html(function() {
                                 return $(this).data('original-text');
                             });
+
+                        // Hide modal lock
+                        if (window.myPluginHideLockModal) {
+                            window.myPluginHideLockModal();
+                        }
                     } else {
                         // Update progress
-                        $('#ai_generate_status')
-                            .text(response.data.message + ' (' + response.data.progress + '%)');
+                        updateAIStatus(response.data.message + ' (' + response.data.progress + '%)');
                         // Continue polling
                         setTimeout(function() {
                             checkProgress(processId);
                         }, 2000);
                     }
                 } else {
-                    $('#ai_generate_status').text('Error: ' + (response.data || 'Unknown error'));
+                    updateAIStatus('Error: ' + (response.data || 'Unknown error'));
                     $('.button').prop('disabled', false)
                         .html(function() {
                             return $(this).data('original-text');
                         });
+
+                    // Hide modal lock
+                    if (window.myPluginHideLockModal) {
+                        window.myPluginHideLockModal();
+                    }
                 }
             },
             error: function(xhr, status, error) {
                 console.error('Progress check error:', {xhr: xhr, status: status, error: error});
-                $('#ai_generate_status').text('Error checking progress: ' + error);
+                updateAIStatus('Error checking progress: ' + error);
                 $('.button').prop('disabled', false)
                     .html(function() {
                         return $(this).data('original-text');
                     });
+
+                // Hide modal lock
+                if (window.myPluginHideLockModal) {
+                    window.myPluginHideLockModal();
+                }
             }
         });
     }
