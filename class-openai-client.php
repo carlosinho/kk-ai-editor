@@ -373,6 +373,10 @@ class KK_AI_Editor_OpenRouter_Client {
             'input' => 3.00,
             'output' => 15.00
         ],
+        'google/gemini-2.5-flash-preview' => [
+            'input' => 0.15,
+            'output' => 0.60
+        ],
         'google/gemini-2.0-flash-001' => [
             'input' => 0.10,
             'output' => 0.40

@@ -45,6 +45,7 @@ function kk_ai_editor_get_model_endpoint($model) {
     $openrouter_models = [
         'anthropic/claude-3.7-sonnet',
         'google/gemini-2.0-flash-001',
+        'google/gemini-2.5-flash-preview',
     ];
     if (in_array($model, $openai_models, true)) {
         return 'openai';
@@ -471,6 +472,7 @@ function kk_ai_editor_register_settings() {
                 'gpt-4.1-mini',
                 'anthropic/claude-3.7-sonnet',
                 'google/gemini-2.0-flash-001',
+                'google/gemini-2.5-flash-preview',
             ];
             return in_array($value, $allowed, true) ? sanitize_text_field($value) : 'gpt-4o';
         },

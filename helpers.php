@@ -295,6 +295,7 @@ function kk_ai_editor_model_dropdown_callback() {
         //'gpt-4.1-mini' => 'OpenAI',
         'anthropic/claude-3.7-sonnet' => 'OpenRouter',
         'google/gemini-2.0-flash-001' => 'OpenRouter',
+        'google/gemini-2.5-flash-preview' => 'OpenRouter',
     ];
     $selected = get_option('kk_ai_editor_model', 'gpt-4o');
     echo '<select name="kk_ai_editor_model">';
