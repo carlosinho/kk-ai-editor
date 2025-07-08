@@ -44,8 +44,10 @@ function kk_ai_editor_get_model_endpoint($model) {
     ];
     $openrouter_models = [
         'anthropic/claude-3.7-sonnet',
+        'anthropic/claude-sonnet-4',
         'google/gemini-2.0-flash-001',
-        'google/gemini-2.5-flash-preview',
+        'google/gemini-2.5-flash-preview-05-20',
+        'google/gemini-2.5-flash',
     ];
     if (in_array($model, $openai_models, true)) {
         return 'openai';

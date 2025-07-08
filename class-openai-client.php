@@ -373,9 +373,21 @@ class KK_AI_Editor_OpenRouter_Client {
             'input' => 3.00,
             'output' => 15.00
         ],
+        'anthropic/claude-sonnet-4' => [
+            'input' => 3.00,
+            'output' => 15.00
+        ],
         'google/gemini-2.5-flash-preview' => [
             'input' => 0.15,
             'output' => 0.60
+        ],
+        'google/gemini-2.5-flash-preview-05-20' => [
+            'input' => 0.15,
+            'output' => 0.60
+        ],
+        'google/gemini-2.5-flash' => [
+            'input' => 0.30,
+            'output' => 2.50
         ],
         'google/gemini-2.0-flash-001' => [
             'input' => 0.10,
@@ -388,6 +400,10 @@ class KK_AI_Editor_OpenRouter_Client {
         'perplexity/sonar' => [
             'input' => 1.00,
             'output' => 1.00
+        ],
+        'perplexity/sonar-pro' => [
+            'input' => 3.00,
+            'output' => 15.00
         ],
         'perplexity/llama-3.1-sonar-large-128k-online' => [
             'input' => 1.00,
