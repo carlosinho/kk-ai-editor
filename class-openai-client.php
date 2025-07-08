@@ -236,9 +236,6 @@ class KK_AI_Editor_OpenAI_Client {
                 $full_response .= $content;
                 error_log("Current response length: " . strlen($full_response));
 
-                //$response_tokens = $this->count_tokens([['role' => 'assistant', 'content' => $content]]); // Count the tokens for the assistant's response
-                //error_log('Token count for response no.'.$attempt.': '.$response_tokens);
-
                 // Add the assistant's response to the messages
                 $messages[] = [
                     'role' => 'assistant',
@@ -265,8 +262,6 @@ class KK_AI_Editor_OpenAI_Client {
                 //error_log('OpenAI continuous generation: Attempt '.$attempt.' of '.$max_attempts.', Current length: '.strlen($full_response).' chars');
                 //error_log('This is the last run.');
                 //error_log('Messages array: ' . print_r($messages, true));
-                //$total_tokens = $this->count_tokens($messages);
-                //error_log('Total token count for whole messages array: '.$total_tokens);
 
                 // If we got here, it's complete
                 $is_completed = true;
@@ -283,47 +278,6 @@ class KK_AI_Editor_OpenAI_Client {
         }
 
         return trim($full_response);
-    }
-
-    /**
-     * Counts tokens for a given array of messages
-     * 
-     * What this actually does is sends a completely new prompt to OpenAI, but limits the response 
-     * to just 1 token. Then, it simply checks the 'usage' field that's in any API response. 
-     * So it basically sends the first response originally gotten from OpenAI back to OpenAI 
-     * so that it can see the tokens used. It's a good first effort but this function on its own 
-     * is going to create additional costs.
-     * 
-     * @param array $messages Array of message objects with 'role' and 'content'
-     * @return int|false Returns token count or false on error
-     */
-    public function count_tokens($messages) {
-        if (empty($this->api_key)) {
-            return false;
-        }
-
-        $response = wp_remote_post($this->endpoint, [
-            'timeout' => 60,
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->api_key,
-                'Content-Type'  => 'application/json',
-            ],
-            'body' => json_encode([
-                'model' => $this->model,
-                'messages' => $messages,
-                'max_tokens' => 1
-            ])
-        ]);
-
-        if (is_wp_error($response)) {
-            return false;
-        }
-
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-
-        return isset($body['usage']['prompt_tokens']) 
-            ? $body['usage']['prompt_tokens']
-            : false;
     }
 
     // Add new getter functions for token usage and cost
