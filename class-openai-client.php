@@ -9,7 +9,7 @@ class KK_AI_Editor_OpenAI_Client {
     private $api_key;
     private $endpoint = 'https://api.openai.com/v1/chat/completions';
     private $model;
-    private $max_tokens = 4096;
+    private $max_tokens = 16384;
     private $temperature = 1;
     private $system_prompt = '';
 
@@ -305,7 +305,7 @@ class KK_AI_Editor_OpenRouter_Client {
     private $model;
     private $temperature = 1;
     private $system_prompt = '';
-    //private $max_tokens = 4096;
+    private $max_tokens = 16384;
 
     // USAGE TRACKING
     private $last_prompt_tokens = 0;
@@ -358,10 +358,6 @@ class KK_AI_Editor_OpenRouter_Client {
         'perplexity/sonar-pro' => [
             'input' => 3.00,
             'output' => 15.00
-        ],
-        'perplexity/llama-3.1-sonar-large-128k-online' => [
-            'input' => 1.00,
-            'output' => 1.00
         ]
     ];
 
@@ -465,7 +461,7 @@ class KK_AI_Editor_OpenRouter_Client {
                 'model'       => $this->model,
                 'messages'    => $messages,
                 'temperature' => $this->temperature,
-                //'max_tokens'  => $this->max_tokens,
+                'max_tokens'  => $this->max_tokens,
             )),
         ));
 
