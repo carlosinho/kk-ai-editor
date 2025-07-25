@@ -3,7 +3,7 @@
  * Plugin Name: AI Editor at Your Service
  * Plugin URI: https://wpwork.shop/
  * Description: Your friendly AI editor - takes your post content and edits it.
- * Version: 0.21
+ * Version: 0.22
  * Author: Karol K
  * Author URI: https://wpwork.shop/
  * License: GPL-2.0
@@ -45,8 +45,7 @@ function kk_ai_editor_get_model_endpoint($model) {
     $openrouter_models = [
         'anthropic/claude-3.7-sonnet',
         'anthropic/claude-sonnet-4',
-        'google/gemini-2.0-flash-001',
-        'google/gemini-2.5-flash-preview-05-20',
+        'google/gemini-2.5-flash-lite',
         'google/gemini-2.5-flash',
     ];
     if (in_array($model, $openai_models, true)) {
@@ -169,7 +168,7 @@ function kk_ai_editor_process_content_generation($process_id) {
     try {
         $api_key = sanitize_text_field(get_option('kk_ai_editor_api_key'));
         $openrouter_key = sanitize_text_field(get_option('kk_ai_editor_openrouter_key'));
-        $model = get_option('kk_ai_editor_model', 'gpt-4o');
+        $model = get_option('kk_ai_editor_model', 'gpt-4o-2024-11-20');
         $endpoint_type = kk_ai_editor_get_model_endpoint($model);
         if (empty($api_key) && $endpoint_type === 'openai') {
             throw new Exception('OpenAI API key not configured');
@@ -468,15 +467,15 @@ function kk_ai_editor_register_settings() {
         'sanitize_callback' => function($value) {
             $allowed = [
                 'gpt-4o-2024-11-20',
-                'gpt-4o',
                 'gpt-4o-mini',
-                'gpt-4.1',
-                'gpt-4.1-mini',
+                //'gpt-4.1',
+                //'gpt-4.1-mini',
                 'anthropic/claude-3.7-sonnet',
-                'google/gemini-2.0-flash-001',
-                'google/gemini-2.5-flash-preview',
+                'anthropic/claude-sonnet-4',
+                'google/gemini-2.5-flash-lite',
+                'google/gemini-2.5-flash',
             ];
-            return in_array($value, $allowed, true) ? sanitize_text_field($value) : 'gpt-4o';
+            return in_array($value, $allowed, true) ? sanitize_text_field($value) : 'gpt-4o-2024-11-20';
         },
     ]);
     // Register prompt style setting with sanitization

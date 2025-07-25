@@ -289,15 +289,15 @@ function kk_ai_editor_toggle_callback($args) {
 function kk_ai_editor_model_dropdown_callback() {
     $models = [
         'gpt-4o-2024-11-20' => 'OpenAI',
-        'gpt-4o' => 'OpenAI',
         'gpt-4o-mini' => 'OpenAI',
         //'gpt-4.1' => 'OpenAI',
         //'gpt-4.1-mini' => 'OpenAI',
         'anthropic/claude-3.7-sonnet' => 'OpenRouter',
-        'google/gemini-2.0-flash-001' => 'OpenRouter',
-        'google/gemini-2.5-flash-preview' => 'OpenRouter',
+        'anthropic/claude-sonnet-4' => 'OpenRouter',
+        'google/gemini-2.5-flash-lite' => 'OpenRouter',
+        'google/gemini-2.5-flash' => 'OpenRouter',
     ];
-    $selected = get_option('kk_ai_editor_model', 'gpt-4o');
+    $selected = get_option('kk_ai_editor_model', 'gpt-4o-2024-11-20');
     echo '<select name="kk_ai_editor_model">';
     foreach ($models as $model => $provider) {
         printf(
