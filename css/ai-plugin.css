@@ -282,3 +282,19 @@ body.toplevel_page_kk-ai-editor .ai-stats-row {
 .ai-label-spacing {
     margin-right: 15px;
 } 
+
+/* Editing style explainer on settings page */
+body.toplevel_page_kk-ai-editor .ai-style-field {
+    display: block;
+}
+body.toplevel_page_kk-ai-editor .ai-style-explainer {
+    margin-top: 18px;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 700px;
+    line-height: 1.5;
+}
+body.toplevel_page_kk-ai-editor .ai-style-explainer p.description {
+    margin: 4px 0;
+}

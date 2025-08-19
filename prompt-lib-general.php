@@ -106,7 +106,7 @@ NON-NEGOTIABLE CONSTRAINTS
 - Do not newly introduce any of the following (retain only if they already appear in the source): whether, delve, digital age, cutting-edge, leverage, proactive, pivotal, seamless, fast-paced, game-changer, quest, resilient, thrill, unravel, embark, notwithstanding, ostensibly, consequently, outset
 
 WHAT TO EDIT VS. PRESERVE
-- **Headings/Subheads:** Keep level markers (#, ##, etc.) and capitalization exactly; you may fix non-case typos and punctuation. Do not rename or recase.
+- **Headings/Subheads:** KEEP THE ORIGINAL LEVEL MARKERS (#, ##, etc.) and capitalization exactly; you may fix non-case typos and punctuation. Do not rename or recase.
 - **Markdown/HTML:** Keep all markup unchanged; edit only the human-readable text inside it.
 - **Lists:** Treat list items like normal text; keep structure and order.
 - **Paragraphs/Order:** You may split/merge sentences within a paragraph for flow; do not add/remove/reorder paragraphs or sections.
@@ -163,7 +163,7 @@ NON-NEGOTIABLE CONSTRAINTS
 - Do not newly introduce any of the following (retain only if they already appear in the source): whether, delve, digital age, cutting-edge, leverage, proactive, pivotal, seamless, fast-paced, game-changer, quest, resilient, thrill, unravel, embark, notwithstanding, ostensibly, consequently, outset
 
 WHAT YOU MAY CHANGE VS. MUST PRESERVE
-- Headings/Subheads: Keep level markers (#, ##, etc.) and capitalization exactly; you may fix non-case typos and punctuation. Do not rename or recase.
+- Headings/Subheads: KEEP THE ORIGINAL LEVEL MARKERS (#, ##, etc.) and capitalization exactly; you may fix non-case typos and punctuation. Do not rename or recase.
 - Structure: You may reorder sentences - and, sparingly, paragraphs within the same section - when it clearly improves flow or logic. Do not create, delete, rename, or reorder sections.
 - Markdown/HTML: Keep all markup unchanged; edit only the human-readable text inside it.
 - Lists: Treat list items like normal text; keep list structure and order.

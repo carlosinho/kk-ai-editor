@@ -316,6 +316,7 @@ function kk_ai_editor_model_dropdown_callback() {
         );
     }
     echo '</select>';
+
 }
 
 /**
@@ -338,6 +339,11 @@ function kk_ai_editor_prompt_style_dropdown_callback() {
         );
     }
     echo '</select>';
+    echo '<div class="ai-style-explainer">';
+    echo '<p class="description"><strong>Strict</strong> - Error-only cleanup: fix typos, grammar, punctuation, capitalization, and clear word-choice mistakes; keep correct sentences verbatim and the structure intact. No rewrites or reordering, no invented content. Voice and facts stay as is. 🥸</p>';
+    echo '<p class="description"><strong>Tidy</strong> - Light style smoothing: fix errors, tighten wording, split run-ons or combine choppy sentences, and soften rough transitions within paragraphs while preserving meaning, tone, and structure. No invented content or reordering of sections. 🧹</p>';
+    echo '<p class="description"><strong>Fluent</strong> - Editorial rewrite within bounds: fix errors and elevate style and flow by rewriting sentences for clarity and rhythm, replacing awkward phrasing, and reordering sentences (and sparingly paragraphs within a section) to improve logic. Preserve meaning, facts, and voice of the author. 🏄</p>';
+    echo '</div>';
 }
 
 ////////////////////////////////////
