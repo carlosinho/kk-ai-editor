@@ -3,7 +3,7 @@
  * Plugin Name: AI Editor at Your Service
  * Plugin URI: https://wpwork.shop/
  * Description: Your friendly AI editor - takes your post content and edits it.
- * Version: 0.22
+ * Version: 0.25
  * Author: Karol K
  * Author URI: https://wpwork.shop/
  * License: GPL-2.0
@@ -24,11 +24,21 @@ require_once 'prompt-lib-general.php';
 //////////////////////
 // DEFINE PARAMETERS
 
+// Error logging toggle (set to true to enable logging to the PHP error log)
+if (!defined('AI_EDITOR_LOG_ERRORS')) {
+    define('AI_EDITOR_LOG_ERRORS', false);
+}
+
 // Max sections generated. This helps to protect against infinite looping.
 define('AI_EDIT_MAX_SECTIONS', 16);
 
 // Model temperature
 define('KK_AI_MODEL_EDIT_TEMP', 1);
+
+// Sentinel used to mask existing secret values inside inputs without revealing them
+if (!defined('KK_AI_EDITOR_MASK_SENTINEL')) {
+    define('KK_AI_EDITOR_MASK_SENTINEL', '********__KEEP__EXISTING__********');
+}
 
 //////////////////////
 // FUNCTIONS
@@ -41,6 +51,9 @@ function kk_ai_editor_get_model_endpoint($model) {
         'gpt-4o-mini',
         'gpt-4.1',
         'gpt-4.1-mini',
+        'o4-mini',
+        'gpt-5',
+        'gpt-5-mini',
     ];
     $openrouter_models = [
         'anthropic/claude-3.7-sonnet',
@@ -143,7 +156,7 @@ function kk_ai_editor_ajax_generate_body() {
                 'message' => 'Content generation started'
             ));
         } else {
-            error_log('Failed to schedule process for ID: ' . $process_id);
+            kk_ai_editor_ai_log('Failed to schedule process for ID: ' . $process_id);
             wp_send_json_error('Failed to schedule process');
         }
     } catch (Exception $e) {
@@ -156,12 +169,12 @@ add_action('wp_ajax_generate_ai_body', 'kk_ai_editor_ajax_generate_body');
  * Background processing handler for AI content generation
  */
 function kk_ai_editor_process_content_generation($process_id) {
-    error_log('Starting content generation process for ID: ' . $process_id);
+    kk_ai_editor_ai_log('Starting content editing process for ID: ' . $process_id);
     
     $option_name = 'ai_gen_data_' . $process_id;
     $data = get_option($option_name);
     if (!$data) {
-        error_log('No data found for process ID: ' . $process_id);
+        kk_ai_editor_ai_log('No data found for process ID: ' . $process_id);
         return;
     }
 
@@ -176,14 +189,14 @@ function kk_ai_editor_process_content_generation($process_id) {
         if (empty($openrouter_key) && $endpoint_type === 'openrouter') {
             throw new Exception('OpenRouter API key not configured');
         }
-        error_log('Current step before processing: ' . $data['step']);
-        //error_log('Current data state: ' . print_r($data, true));
+        kk_ai_editor_ai_log('Current step before processing: ' . $data['step']);
+        //kk_ai_editor_ai_log('Current data state: ' . print_r($data, true));
         
         list($working_sys_prompt, $working_user_prompt) = kk_ai_editor_get_working_prompts();
         
         switch ($data['step']) {
             case 'intro':
-                //error_log('Editing intro...');
+                //kk_ai_editor_ai_log('Editing intro...');
 
                 $pre_intro_content = '';
                 if (preg_match('/^(.*?)(?=^[^\n]+\n-+\n)/ms', $data['pre_edit_content'], $intro_matches)) {
@@ -196,7 +209,7 @@ function kk_ai_editor_process_content_generation($process_id) {
                 // PREPARE EDIT PROMPT
                 $prompt = $working_user_prompt . $pre_intro_content;
                 
-                //error_log('Edit prompt: ' . $prompt); // Debug log
+                //kk_ai_editor_ai_log('Edit prompt: ' . $prompt); // Debug log
                 
                 // GENERATE EDIT
                 $edit1_gpt = '';
@@ -205,12 +218,24 @@ function kk_ai_editor_process_content_generation($process_id) {
                 else
                     $edit1_gpt = new KK_AI_Editor_OpenRouter_Client($openrouter_key, $model, KK_AI_MODEL_EDIT_TEMP, $working_sys_prompt);
                 $generated_edit = $edit1_gpt->generate_content($prompt);
+
+                // Handle API/content-level errors without replacing post content
+                if (
+                    is_string($generated_edit)
+                    && stripos(ltrim($generated_edit), 'Error: Incorrect API key provided') === 0
+                ) {
+                    kk_ai_editor_ai_log('AI error detected during intro: ' . $generated_edit);
+                    $data['status'] = 'error';
+                    $data['error'] = $generated_edit;
+                    update_option($option_name, $data, false);
+                    return; // stop processing further steps
+                }
                 
                 // Track usage stats
                 $prompt_tokens = $edit1_gpt->get_last_prompt_tokens();
                 $completion_tokens = $edit1_gpt->get_last_completion_tokens();
                 $total_cost = $edit1_gpt->get_last_total_cost();
-                //error_log("Edit intro - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
+                //kk_ai_editor_ai_log("Edit intro - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
                 if ($data['post_id'] > 0) {
                     $new_log = kk_ai_editor_append_to_usage_log($data['post_id'], "Edit intro - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost ($model)");
                     $new_totals = kk_ai_editor_update_usage_totals($data['post_id'], $prompt_tokens, $completion_tokens, $total_cost);
@@ -231,13 +256,13 @@ function kk_ai_editor_process_content_generation($process_id) {
                         return $title . "\n" . str_repeat('-', strlen($title)) . "\n" . $content;
                     }, $matches[1], $matches[2]);
                     
-                    //error_log('Found sections: ' . print_r($data['sections'], true));
+                    //kk_ai_editor_ai_log('Found sections: ' . print_r($data['sections'], true));
                 } else {
-                    error_log('No sections found in post: ' . $data['pre_edit_content']); // Debug log
+                    kk_ai_editor_ai_log('No sections found in post: ' . $data['pre_edit_content']); // Debug log
                     throw new Exception('No sections found in post');
                 }
                 
-                //error_log('Found ' . count($data['sections']) . ' sections');
+                //kk_ai_editor_ai_log('Found ' . count($data['sections']) . ' sections');
                 
                 // Set next step, % progress
                 $data['step'] = 'sections';
@@ -245,20 +270,20 @@ function kk_ai_editor_process_content_generation($process_id) {
 
                 // Save progress
                 if (!update_option($option_name, $data, false)) {
-                    error_log('Failed to save progress after first edit. Data: ' . print_r($data, true));
+                    kk_ai_editor_ai_log('Failed to save progress after first edit. Data: ' . print_r($data, true));
                     throw new Exception('Failed to save progress after first edit');
                 }
                 break;
 
             case 'sections':
-                error_log('Processing section ' . ($data['current_section'] + 1));
+                kk_ai_editor_ai_log('Processing section ' . ($data['current_section'] + 1));
                 if ($data['current_section'] < count($data['sections']) && $data['current_section'] < AI_EDIT_MAX_SECTIONS) {
                     $section = $data['sections'][$data['current_section']];
-                    error_log('Current section content: ' . $section); // Debug log
+                    kk_ai_editor_ai_log('Current section content: ' . $section); // Debug log
                     
                     // PREPARE SECTION EDIT PROMPT
                     $prompt = $working_user_prompt . $section;
-                    error_log('Section edit prompt: ' . $prompt); // Debug log
+                    kk_ai_editor_ai_log('Section edit prompt: ' . $prompt); // Debug log
 
                     // GENERATE EDIT
                     $editn_gpt = '';
@@ -267,12 +292,12 @@ function kk_ai_editor_process_content_generation($process_id) {
                     else
                         $editn_gpt = new KK_AI_Editor_OpenRouter_Client($openrouter_key, $model, KK_AI_MODEL_EDIT_TEMP, $working_sys_prompt);
                     $section_content = $editn_gpt->generate_content($prompt);
-                    
+
                     // Track usage stats
                     $prompt_tokens = $editn_gpt->get_last_prompt_tokens();
                     $completion_tokens = $editn_gpt->get_last_completion_tokens();
                     $total_cost = $editn_gpt->get_last_total_cost();
-                    //error_log("Edit section " . ($data['current_section'] + 1) . " - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
+                    //kk_ai_editor_ai_log("Edit section " . ($data['current_section'] + 1) . " - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost");
                     if ($data['post_id'] > 0) {
                         $new_log = kk_ai_editor_append_to_usage_log($data['post_id'], "Edit section " . ($data['current_section'] + 1) . " - Prompt tokens: $prompt_tokens, Completion tokens: $completion_tokens, Cost: $$total_cost ($model)");
                         $new_totals = kk_ai_editor_update_usage_totals($data['post_id'], $prompt_tokens, $completion_tokens, $total_cost);
@@ -298,14 +323,14 @@ function kk_ai_editor_process_content_generation($process_id) {
                 // Save progress with error checking
                 $save_result = update_option($option_name, $data, false);
                 if (!$save_result) {
-                    error_log('Failed to save progress after section. Data size: ' . strlen(serialize($data)));
-                    error_log('Data content: ' . print_r($data, true));
+                    kk_ai_editor_ai_log('Failed to save progress after section. Data size: ' . strlen(serialize($data)));
+                    kk_ai_editor_ai_log('Data content: ' . print_r($data, true));
                     throw new Exception('Failed to save progress after section');
                 }
                 break;
 
             case 'summary':
-                error_log('Final touches...');
+                kk_ai_editor_ai_log('Final touches...');
                 
                 // Set next step, % progress, add new data
                 $data['step'] = 'complete';
@@ -315,22 +340,22 @@ function kk_ai_editor_process_content_generation($process_id) {
                 // Save final progress with error checking
                 $save_result = update_option($option_name, $data, false);
                 if (!$save_result) {
-                    error_log('Failed to save progress after summary. Data size: ' . strlen(serialize($data)));
-                    error_log('Data content: ' . print_r($data, true));
+                    kk_ai_editor_ai_log('Failed to save progress after summary. Data size: ' . strlen(serialize($data)));
+                    kk_ai_editor_ai_log('Data content: ' . print_r($data, true));
                     throw new Exception('Failed to save progress after summary');
                 }
                 
-                error_log('Completed successfully.');
+                kk_ai_editor_ai_log('Completed successfully.');
 
                 break;
         }
 
         // Schedule next run if not complete
         if ($data['step'] !== 'complete') {
-            error_log('Scheduling next run for process ID: ' . $process_id);
+            kk_ai_editor_ai_log('Scheduling next run for process ID: ' . $process_id);
             wp_schedule_single_event(time(), 'kk_ai_editor_process_content_generation', array($process_id));
         } else {
-            error_log('Process complete for ID: ' . $process_id);
+            kk_ai_editor_ai_log('Process complete for ID: ' . $process_id);
             // Keep the data for 3 minutes after completion
             $data['expires_at'] = time() + 180; // 3 minutes
             update_option($option_name, $data, false);
@@ -340,7 +365,7 @@ function kk_ai_editor_process_content_generation($process_id) {
         }
 
     } catch (Exception $e) {
-        error_log('Error in content generation: ' . $e->getMessage());
+        kk_ai_editor_ai_log('Error in content editing: ' . $e->getMessage());
         $data['status'] = 'error';
         $data['error'] = $e->getMessage();
         update_option($option_name, $data, false);
@@ -459,8 +484,32 @@ add_action('admin_enqueue_scripts', 'kk_ai_editor_enqueue_admin_scripts');
  */
 function kk_ai_editor_register_settings() {
     // Register settings
-    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_api_key');
-    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_openrouter_key');
+    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_api_key', [
+        'type' => 'string',
+        'sanitize_callback' => function($value) {
+            // If user leaves the masked sentinel, preserve existing stored value
+            if ($value === KK_AI_EDITOR_MASK_SENTINEL) {
+                return get_option('kk_ai_editor_api_key', '');
+            }
+            // If field left blank, clear the value
+            if ($value === '' || $value === null) {
+                return '';
+            }
+            return sanitize_text_field($value);
+        },
+    ]);
+    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_openrouter_key', [
+        'type' => 'string',
+        'sanitize_callback' => function($value) {
+            if ($value === KK_AI_EDITOR_MASK_SENTINEL) {
+                return get_option('kk_ai_editor_openrouter_key', '');
+            }
+            if ($value === '' || $value === null) {
+                return '';
+            }
+            return sanitize_text_field($value);
+        },
+    ]);
     // Register model setting with sanitization
     register_setting('kk_ai_editor_options_group', 'kk_ai_editor_model', [
         'type' => 'string',
@@ -470,6 +519,9 @@ function kk_ai_editor_register_settings() {
                 'gpt-4o-mini',
                 //'gpt-4.1',
                 //'gpt-4.1-mini',
+                'o4-mini',
+                'gpt-5',
+                'gpt-5-mini',
                 'anthropic/claude-3.7-sonnet',
                 'anthropic/claude-sonnet-4',
                 'google/gemini-2.5-flash-lite',

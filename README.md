@@ -10,7 +10,7 @@ Automatically polishes your post content using OpenAI or OpenRouter models, dire
 
 - One-click AI-powered editing for posts in the Block Editor
 - Works with posts 3000 words+
-- Choose between strict, loose, or creative editing prompt styles
+- Choose between Strict, Tidy, or Fluent editing prompt styles
 - Supports OpenAI and OpenRouter models (configurable)
 - Usage statistics and cost tracking per post
 - Secure AJAX background processing (with progress feedback)
@@ -33,7 +33,7 @@ Automatically polishes your post content using OpenAI or OpenRouter models, dire
 - **Model Selection:**  
   Choose your preferred model (e.g., `gpt-4o`, or OpenRouter models).
 - **Prompt Style:**  
-  Select strict, loose, or creative editing style to control how much the AI changes your text.
+  Select Strict, Tidy, or Fluent editing style to control how much the AI changes your text.
 
 ---
 

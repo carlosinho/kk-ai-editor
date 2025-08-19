@@ -13,6 +13,10 @@ class KK_AI_Editor_OpenAI_Client {
     private $temperature = 1;
     private $system_prompt = '';
 
+    // GPT-5 SPECIFIC SETTINGS
+    private $reasoning_effort = 'minimal'; // minimal, low, medium, high
+    private $verbosity = 'medium'; // low, medium, high
+
     // TOKEN TRACKING
     private $last_prompt_tokens = 0;
     private $last_completion_tokens = 0;
@@ -44,6 +48,18 @@ class KK_AI_Editor_OpenAI_Client {
         'gpt-4o-mini' => [
             'input' => 0.15,
             'output' => 0.60
+        ],
+        'o4-mini' => [
+            'input' => 1.10,
+            'output' => 4.40
+        ],
+        'gpt-5' => [
+            'input' => 1.25,
+            'output' => 10.00
+        ],
+        'gpt-5-mini' => [
+            'input' => 0.25,
+            'output' => 2.00
         ]
     ];
 
@@ -60,6 +76,33 @@ class KK_AI_Editor_OpenAI_Client {
 
     public function set_system_prompt($system_prompt) {
         $this->system_prompt = $system_prompt;
+    }
+
+    /**
+     * Check if model is GPT-5 series
+     */
+    private function is_gpt5_model($model) {
+        return strpos($model, 'gpt-5') === 0;
+    }
+
+    /**
+     * Set reasoning effort for GPT-5 models
+     */
+    public function set_reasoning_effort($effort) {
+        $valid_efforts = ['minimal', 'low', 'medium', 'high'];
+        if (in_array($effort, $valid_efforts)) {
+            $this->reasoning_effort = $effort;
+        }
+    }
+
+    /**
+     * Set verbosity for GPT-5 models
+     */
+    public function set_verbosity($verbosity) {
+        $valid_verbosity = ['low', 'medium', 'high'];
+        if (in_array($verbosity, $valid_verbosity)) {
+            $this->verbosity = $verbosity;
+        }
     }
 
     /**
@@ -91,18 +134,41 @@ class KK_AI_Editor_OpenAI_Client {
             'content' => $prompt,
         ];
 
+        // Prepare the request body
+        $request_body = array(
+            'model'    => $this->model,
+            'messages' => $messages,
+        );
+
+        // Add temperature only for non-GPT-5 models (GPT-5 supports default temperature of 1)
+        if (!$this->is_gpt5_model($this->model)) {
+            $request_body['temperature'] = $this->temperature;
+        }
+
+        // Add GPT-5 parameters for Chat Completions API (only if not default)
+        if ($this->is_gpt5_model($this->model)) {
+            if ($this->reasoning_effort !== 'medium') {
+                $request_body['reasoning_effort'] = $this->reasoning_effort;
+            }
+            if ($this->verbosity !== 'medium') {
+                $request_body['verbosity'] = $this->verbosity;
+            }
+        }
+
+        // Use max_completion_tokens for o4-mini and GPT-5 models, max_tokens for others
+        if ($this->model === 'o4-mini' || $this->is_gpt5_model($this->model)) {
+            $request_body['max_completion_tokens'] = $this->max_tokens;
+        } else {
+            $request_body['max_tokens'] = $this->max_tokens;
+        }
+
         $response = wp_remote_post($this->endpoint, array(
             'timeout' => 60,
             'headers' => array(
                 'Authorization' => 'Bearer ' . $this->api_key,
                 'Content-Type'  => 'application/json',
             ),
-            'body' => json_encode(array(
-                'model'       => $this->model,
-                'messages'    => $messages,
-                'max_tokens'  => $this->max_tokens,
-                'temperature' => $this->temperature,
-            )),
+            'body' => json_encode($request_body),
         ));
 
         if (is_wp_error($response)) {
@@ -177,30 +243,39 @@ class KK_AI_Editor_OpenAI_Client {
 
         while (!$is_completed && $attempt < $max_attempts) {
             $attempt++;
-            error_log("Attempt $attempt of continuous generation");
+            kk_ai_editor_ai_log("Attempt $attempt of continuous generation");
             
             try {
+                // Prepare the request body
+                $request_body = [
+                    'model' => $this->model,
+                    'messages' => $messages,
+                    'temperature' => $this->temperature,
+                ];
+
+                // Use max_completion_tokens for o4-mini model, max_tokens for others
+                if ($this->model === 'o4-mini') {
+                    $request_body['max_completion_tokens'] = $max_output_tokens;
+                } else {
+                    $request_body['max_tokens'] = $max_output_tokens;
+                }
+
                 $response = wp_remote_post($this->endpoint, [
                     'timeout' => 300, // Increase timeout to 5 minutes
                     'headers' => [
                         'Authorization' => 'Bearer ' . $this->api_key,
                         'Content-Type'  => 'application/json',
                     ],
-                    'body' => json_encode([
-                        'model' => $this->model,
-                        'messages' => $messages,
-                        'max_tokens' => $max_output_tokens,
-                        'temperature' => $this->temperature,
-                    ])
+                    'body' => json_encode($request_body)
                 ]);
 
                 if (is_wp_error($response)) {
-                    error_log('API error: ' . $response->get_error_message());
+                    kk_ai_editor_ai_log('API error: ' . $response->get_error_message());
                     return 'Error: ' . $response->get_error_message();
                 }
 
                 $body = json_decode(wp_remote_retrieve_body($response), true);
-                error_log('API response: ' . print_r($body, true));
+                kk_ai_editor_ai_log('API response: ' . print_r($body, true));
 
                 // Accumulate token usage stats and calculate cost
                 if (isset($body['usage'])) {
@@ -220,7 +295,7 @@ class KK_AI_Editor_OpenAI_Client {
                     $error_message = isset($body['error']['message'])
                         ? $body['error']['message']
                         : 'Unexpected API response: ' . print_r($body, true);
-                    error_log('API error: ' . $error_message);
+                    kk_ai_editor_ai_log('API error: ' . $error_message);
                     return 'Error: ' . $error_message;
                 }
 
@@ -228,13 +303,13 @@ class KK_AI_Editor_OpenAI_Client {
                 $content = isset($choice['message']['content']) ? trim($choice['message']['content']) : '';
                 
                 if (empty($content)) {
-                    error_log('Empty content received');
+                    kk_ai_editor_ai_log('Empty content received');
                     return 'Error: Empty response content';
                 }
 
                 // Add the assistant's response to the full response
                 $full_response .= $content;
-                error_log("Current response length: " . strlen($full_response));
+                kk_ai_editor_ai_log("Current response length: " . strlen($full_response));
 
                 // Add the assistant's response to the messages
                 $messages[] = [
@@ -250,7 +325,7 @@ class KK_AI_Editor_OpenAI_Client {
 
                 // If response was cut off or doesn't seem complete, continue
                 if (!$appears_complete) {
-                    error_log("Response seems incomplete, continuing...");
+                    kk_ai_editor_ai_log("Response seems incomplete, continuing...");
                     $messages[] = [
                         'role' => 'user',
                         'content' => $this->continuous_prompt
@@ -259,21 +334,21 @@ class KK_AI_Editor_OpenAI_Client {
                 }
 
                 // Token counting and debug
-                //error_log('OpenAI continuous generation: Attempt '.$attempt.' of '.$max_attempts.', Current length: '.strlen($full_response).' chars');
-                //error_log('This is the last run.');
-                //error_log('Messages array: ' . print_r($messages, true));
+                //kk_ai_editor_ai_log('OpenAI continuous generation: Attempt '.$attempt.' of '.$max_attempts.', Current length: '.strlen($full_response).' chars');
+                //kk_ai_editor_ai_log('This is the last run.');
+                //kk_ai_editor_ai_log('Messages array: ' . print_r($messages, true));
 
                 // If we got here, it's complete
                 $is_completed = true;
 
             } catch (Exception $e) {
-                error_log('Exception in continuous generation: ' . $e->getMessage());
+                kk_ai_editor_ai_log('Exception in continuous generation: ' . $e->getMessage());
                 return 'Error: ' . $e->getMessage();
             }
         }
 
         if (!$is_completed && $attempt >= $max_attempts) {
-            error_log('Max attempts reached without completion');
+            kk_ai_editor_ai_log('Max attempts reached without completion');
             return $full_response . "\n\nWarning: Response may be incomplete due to length limitations.";
         }
 
@@ -380,11 +455,11 @@ class KK_AI_Editor_OpenRouter_Client {
      */
     private function fetch_generation_stats($generation_id) {
         if (empty($generation_id)) {
-            error_log('OpenRouter: Empty generation ID');
+            kk_ai_editor_ai_log('OpenRouter: Empty generation ID');
             return false;
         }
 
-        error_log('OpenRouter: Fetching stats for generation ' . $generation_id);
+        kk_ai_editor_ai_log('OpenRouter: Fetching stats for generation ' . $generation_id);
 
         $response = wp_remote_get('https://openrouter.ai/api/v1/generation?id=' . $generation_id, [
             'headers' => [
@@ -395,12 +470,12 @@ class KK_AI_Editor_OpenRouter_Client {
         ]);
 
         if (is_wp_error($response)) {
-            error_log('OpenRouter stats fetch error: ' . $response->get_error_message());
+            kk_ai_editor_ai_log('OpenRouter stats fetch error: ' . $response->get_error_message());
             return false;
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        error_log('OpenRouter stats response: ' . print_r($body, true));
+        kk_ai_editor_ai_log('OpenRouter stats response: ' . print_r($body, true));
 
         if (isset($body['data'])) {
             $this->last_prompt_tokens = $body['data']['tokens_prompt'] ?? 0;
@@ -408,14 +483,14 @@ class KK_AI_Editor_OpenRouter_Client {
             $this->last_total_tokens = ($this->last_prompt_tokens + $this->last_completion_tokens);
             $this->last_total_cost = $body['data']['total_cost'] ?? 0.0;
             
-            error_log('OpenRouter stats fetched successfully:');
-            error_log('- Prompt tokens: ' . $this->last_prompt_tokens);
-            error_log('- Completion tokens: ' . $this->last_completion_tokens);
-            error_log('- Total cost: $' . $this->last_total_cost);
+            kk_ai_editor_ai_log('OpenRouter stats fetched successfully:');
+            kk_ai_editor_ai_log('- Prompt tokens: ' . $this->last_prompt_tokens);
+            kk_ai_editor_ai_log('- Completion tokens: ' . $this->last_completion_tokens);
+            kk_ai_editor_ai_log('- Total cost: $' . $this->last_total_cost);
             return true;
         }
 
-        error_log('OpenRouter: No stats data in response');
+        kk_ai_editor_ai_log('OpenRouter: No stats data in response');
         return false;
     }
 
@@ -436,8 +511,8 @@ class KK_AI_Editor_OpenRouter_Client {
         $this->last_total_tokens = 0;
         $this->last_total_cost = 0.0;
 
-        error_log('OpenRouter: Sending request to ' . $this->endpoint);
-        error_log('OpenRouter: Using model ' . $this->model);
+        kk_ai_editor_ai_log('OpenRouter: Sending request to ' . $this->endpoint);
+        kk_ai_editor_ai_log('OpenRouter: Using model ' . $this->model);
 
         $messages = [];
         if (!empty($this->system_prompt)) {
@@ -466,12 +541,12 @@ class KK_AI_Editor_OpenRouter_Client {
         ));
 
         if (is_wp_error($response)) {
-            error_log('OpenRouter error: ' . $response->get_error_message());
+            kk_ai_editor_ai_log('OpenRouter error: ' . $response->get_error_message());
             return 'Error: ' . $response->get_error_message();
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        error_log('OpenRouter response: ' . print_r($body, true));
+        kk_ai_editor_ai_log('OpenRouter response: ' . print_r($body, true));
 
         // Fetch stats - using the separate call to OpenRouter to fetch the actual costs. This proved not reliable since OpenRouter often can't find the ID of the previous request.
         /*if (isset($body['id'])) {
@@ -491,10 +566,10 @@ class KK_AI_Editor_OpenRouter_Client {
                     ($this->last_completion_tokens / 1000000 * $this->model_pricing[$this->model]['output']);
             }
             
-            //error_log('OpenRouter usage tracked:');
-            //error_log('- Prompt tokens: ' . $this->last_prompt_tokens);
-            //error_log('- Completion tokens: ' . $this->last_completion_tokens);
-            //error_log('- Total cost: $' . $this->last_total_cost);
+            //kk_ai_editor_ai_log('OpenRouter usage tracked:');
+            //kk_ai_editor_ai_log('- Prompt tokens: ' . $this->last_prompt_tokens);
+            //kk_ai_editor_ai_log('- Completion tokens: ' . $this->last_completion_tokens);
+            //kk_ai_editor_ai_log('- Total cost: $' . $this->last_total_cost);
         }
 
         if (!isset($body['choices']) || !is_array($body['choices']) || empty($body['choices'])) {

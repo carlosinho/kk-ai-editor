@@ -38,17 +38,17 @@ function kk_ai_editor_append_to_usage_log($post_id, $message) {
  * @param float $total_cost The total cost of the usage
  */
 function kk_ai_editor_update_usage_totals($post_id, $prompt_tokens, $completion_tokens, $total_cost) {
-    //error_log("=== Updating usage totals for post $post_id ===");
+    //kk_ai_editor_ai_log("=== Updating usage totals for post $post_id ===");
     
     // Get current values with explicit defaults
     $current_prompt_tokens = get_post_meta($post_id, 'kk_ai_editor_total_prompt_tokens', true);
     $current_completion_tokens = get_post_meta($post_id, 'kk_ai_editor_total_completion_tokens', true);
     $current_total_cost = get_post_meta($post_id, 'kk_ai_editor_total_total_cost', true);
     
-    //error_log("Current values from DB:");
-    //error_log("- Prompt tokens: " . var_export($current_prompt_tokens, true));
-    //error_log("- Completion tokens: " . var_export($current_completion_tokens, true));
-    //error_log("- Total cost: " . var_export($current_total_cost, true));
+    //kk_ai_editor_ai_log("Current values from DB:");
+    //kk_ai_editor_ai_log("- Prompt tokens: " . var_export($current_prompt_tokens, true));
+    //kk_ai_editor_ai_log("- Completion tokens: " . var_export($current_completion_tokens, true));
+    //kk_ai_editor_ai_log("- Total cost: " . var_export($current_total_cost, true));
     
     // Convert to proper types with explicit defaults
     $current_prompt_tokens = $current_prompt_tokens !== '' ? (int)$current_prompt_tokens : 0;
@@ -60,10 +60,10 @@ function kk_ai_editor_update_usage_totals($post_id, $prompt_tokens, $completion_
     $new_completion_tokens = $current_completion_tokens + (int)$completion_tokens;
     $new_total_cost = $current_total_cost + (float)$total_cost;
     
-    //error_log("New values to save:");
-    //error_log("- Prompt tokens: $new_prompt_tokens (adding $prompt_tokens)");
-    //error_log("- Completion tokens: $new_completion_tokens (adding $completion_tokens)");
-    //error_log("- Total cost: $new_total_cost (adding $total_cost)");
+    //kk_ai_editor_ai_log("New values to save:");
+    //kk_ai_editor_ai_log("- Prompt tokens: $new_prompt_tokens (adding $prompt_tokens)");
+    //kk_ai_editor_ai_log("- Completion tokens: $new_completion_tokens (adding $completion_tokens)");
+    //kk_ai_editor_ai_log("- Total cost: $new_total_cost (adding $total_cost)");
     
     // Clear the cache before updates
     //wp_cache_delete($post_id, 'post_meta');
@@ -76,21 +76,21 @@ function kk_ai_editor_update_usage_totals($post_id, $prompt_tokens, $completion_
     // Clear the cache again after updates
     //wp_cache_delete($post_id, 'post_meta');
     
-    //error_log("Update results:");
-    //error_log("- Prompt tokens update: " . var_export($result1, true));
-    //error_log("- Completion tokens update: " . var_export($result2, true));
-    //error_log("- Total cost update: " . var_export($result3, true));
+    //kk_ai_editor_ai_log("Update results:");
+    //kk_ai_editor_ai_log("- Prompt tokens update: " . var_export($result1, true));
+    //kk_ai_editor_ai_log("- Completion tokens update: " . var_export($result2, true));
+    //kk_ai_editor_ai_log("- Total cost update: " . var_export($result3, true));
     
     // Verify the updates
     //$verify_prompt = get_post_meta($post_id, 'kk_ai_editor_total_prompt_tokens', true);
     //$verify_completion = get_post_meta($post_id, 'kk_ai_editor_total_completion_tokens', true);
     //$verify_cost = get_post_meta($post_id, 'kk_ai_editor_total_total_cost', true);
     
-    //error_log("Verification - values after update:");
-    //error_log("- Prompt tokens: $verify_prompt");
-    //error_log("- Completion tokens: $verify_completion");
-    //error_log("- Total cost: $verify_cost");
-    //error_log("=== Update complete ===");
+    //kk_ai_editor_ai_log("Verification - values after update:");
+    //kk_ai_editor_ai_log("- Prompt tokens: $verify_prompt");
+    //kk_ai_editor_ai_log("- Completion tokens: $verify_completion");
+    //kk_ai_editor_ai_log("- Total cost: $verify_cost");
+    //kk_ai_editor_ai_log("=== Update complete ===");
 
     // Return the new totals
     return array(
@@ -248,7 +248,9 @@ function kk_ai_editor_plugin_render_usage_stats() {
  */
 function kk_ai_editor_openai_key_callback() {
     $api_key = get_option('kk_ai_editor_api_key');
-    echo '<input type="text" name="kk_ai_editor_api_key" value="' . esc_attr($api_key) . '" class="regular-text">';
+    $has_key = !empty($api_key);
+    $value = $has_key ? KK_AI_EDITOR_MASK_SENTINEL : '';
+    echo '<input type="password" name="kk_ai_editor_api_key" value="' . esc_attr($value) . '" class="regular-text" autocomplete="new-password">';
 }
 
 /**
@@ -256,7 +258,9 @@ function kk_ai_editor_openai_key_callback() {
  */
 function kk_ai_editor_openrouter_key_callback() {
     $api_key = get_option('kk_ai_editor_openrouter_key');
-    echo '<input type="text" name="kk_ai_editor_openrouter_key" value="' . esc_attr($api_key) . '" class="regular-text">';
+    $has_key = !empty($api_key);
+    $value = $has_key ? KK_AI_EDITOR_MASK_SENTINEL : '';
+    echo '<input type="password" name="kk_ai_editor_openrouter_key" value="' . esc_attr($value) . '" class="regular-text" autocomplete="new-password">';
 }
 
 /**
@@ -292,6 +296,9 @@ function kk_ai_editor_model_dropdown_callback() {
         'gpt-4o-mini' => 'OpenAI',
         //'gpt-4.1' => 'OpenAI',
         //'gpt-4.1-mini' => 'OpenAI',
+        'o4-mini' => 'OpenAI',
+        'gpt-5' => 'OpenAI',
+        'gpt-5-mini' => 'OpenAI',
         'anthropic/claude-3.7-sonnet' => 'OpenRouter',
         'anthropic/claude-sonnet-4' => 'OpenRouter',
         'google/gemini-2.5-flash-lite' => 'OpenRouter',
@@ -316,9 +323,9 @@ function kk_ai_editor_model_dropdown_callback() {
  */
 function kk_ai_editor_prompt_style_dropdown_callback() {
     $options = [
-        'strict' => 'Strict editing',
-        'loose' => 'Loose editing',
-        'looser' => 'Even looser editing',
+        'strict' => 'Strict',
+        'loose' => 'Tidy',
+        'looser' => 'Fluent',
     ];
     $selected = get_option('kk_ai_editor_prompt_style', 'strict');
     echo '<select name="kk_ai_editor_prompt_style">';
@@ -342,7 +349,7 @@ function kk_ai_editor_prompt_style_dropdown_callback() {
  */
 function kk_ai_editor_debug_cron_status($process_id) {
     $next_run = wp_next_scheduled('kk_ai_editor_process_content_generation', array($process_id));
-    error_log('Next scheduled run for ' . $process_id . ': ' . ($next_run ? date('Y-m-d H:i:s', $next_run) : 'Not scheduled'));
+    kk_ai_editor_ai_log('Next scheduled run for ' . $process_id . ': ' . ($next_run ? date('Y-m-d H:i:s', $next_run) : 'Not scheduled'));
 }
 
 /**
@@ -369,7 +376,7 @@ function kk_ai_editor_cleanup_generation_data() {
 function kk_ai_editor_cleanup_ai_generation_data($process_id) {
     $option_name = 'ai_gen_data_' . $process_id;
     delete_option($option_name);
-    error_log('Cleaned up data for process ID: ' . $process_id);
+    kk_ai_editor_ai_log('Cleaned up data for process ID: ' . $process_id);
 }
 
 /**
@@ -378,4 +385,29 @@ function kk_ai_editor_cleanup_ai_generation_data($process_id) {
 function kk_ai_editor_sanitize_checkbox($value) {
     // Convert string "0" and "1" to proper boolean
     return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+}
+
+/**
+ * Centralized logging helper. Respects the AI_EDITOR_LOG_ERRORS constant.
+ *
+ * @param mixed $message Message or data to log
+ * @param mixed $context Optional context to append (array/object/string)
+ */
+function kk_ai_editor_ai_log($message, $context = null) {
+    if (!defined('AI_EDITOR_LOG_ERRORS') || !AI_EDITOR_LOG_ERRORS) {
+        return;
+    }
+
+    if (is_array($message) || is_object($message)) {
+        $message = print_r($message, true);
+    }
+
+    if ($context !== null) {
+        if (is_array($context) || is_object($context)) {
+            $context = print_r($context, true);
+        }
+        $message .= ' | ' . $context;
+    }
+
+    error_log('[KK AI Editor] ' . $message);
 }
