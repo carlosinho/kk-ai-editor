@@ -3,7 +3,7 @@
  * Plugin Name: AI Editor at Your Service
  * Plugin URI: https://wpwork.shop/
  * Description: Your friendly AI editor - takes your post content and edits it.
- * Version: 0.25
+ * Version: 0.26
  * Author: Karol K
  * Author URI: https://wpwork.shop/
  * License: GPL-2.0
@@ -98,7 +98,7 @@ function kk_ai_editor_ajax_generate_body() {
         return;
     }
 
-    if (!current_user_can('edit_posts')) {
+    if (!kk_ai_editor_user_has_min_access()) {
         wp_send_json_error('Unauthorized');
         return;
     }
@@ -390,6 +390,11 @@ function kk_ai_editor_check_generation_progress() {
         wp_send_json_error('No process ID provided');
         return;
     }
+    // Enforce capability based on configured minimum access
+    if (!kk_ai_editor_user_has_min_access()) {
+        wp_send_json_error('Unauthorized');
+        return;
+    }
     
     $process_id = sanitize_text_field($_POST['process_id']);
     
@@ -448,14 +453,16 @@ add_action('wp_ajax_check_generation_progress', 'kk_ai_editor_check_generation_p
  * Add meta box to the post editing screen.
  */
 function kk_ai_editor_ai_add_meta_box() {
-    add_meta_box(
-        'ai_content_generator',
-        'AI Editor',
-        'kk_ai_editor_meta_box_callback',
-        'post',
-        'side',
-        'default'
-    );
+    if (kk_ai_editor_user_has_min_access()) {
+        add_meta_box(
+            'ai_content_generator',
+            'AI Editor',
+            'kk_ai_editor_meta_box_callback',
+            'post',
+            'side',
+            'default'
+        );
+    }
 }
 add_action( 'add_meta_boxes', 'kk_ai_editor_ai_add_meta_box' );
 
@@ -465,6 +472,10 @@ add_action( 'add_meta_boxes', 'kk_ai_editor_ai_add_meta_box' );
 function kk_ai_editor_enqueue_admin_scripts($hook) {
     // Load on post edit pages and plugin settings page
     if (!in_array($hook, ['post.php', 'post-new.php', 'toplevel_page_kk-ai-editor'])) {
+        return;
+    }
+    // Gate loading on post editor screens by capability
+    if (in_array($hook, ['post.php', 'post-new.php'], true) && !kk_ai_editor_user_has_min_access()) {
         return;
     }
     
@@ -539,6 +550,17 @@ function kk_ai_editor_register_settings() {
         },
     ]);
 
+    // Register minimum capability setting
+    register_setting('kk_ai_editor_options_group', 'kk_ai_editor_min_capability', [
+        'type' => 'string',
+        'sanitize_callback' => function($value) {
+            $allowed_caps = array_values(kk_ai_editor_get_allowed_capabilities());
+            $default = kk_ai_editor_get_allowed_capabilities()['editor'];
+            $value = is_string($value) ? $value : '';
+            return in_array($value, $allowed_caps, true) ? sanitize_text_field($value) : $default;
+        },
+    ]);
+
     // API Keys section
     add_settings_section(
         'kk_ai_editor_main_section', 
@@ -580,6 +602,15 @@ function kk_ai_editor_register_settings() {
         'kk_ai_editor_prompt_style',
         'Editing Style',
         'kk_ai_editor_prompt_style_dropdown_callback',
+        'kk-ai-editor',
+        'kk_ai_editor_main_section'
+    );
+
+    // Add minimum access capability dropdown field
+    add_settings_field(
+        'kk_ai_editor_min_capability',
+        'Minimum access level',
+        'kk_ai_editor_min_capability_dropdown_callback',
         'kk-ai-editor',
         'kk_ai_editor_main_section'
     );
@@ -680,14 +711,16 @@ add_action( 'admin_menu', 'kk_ai_editor_add_admin_menu' );
  * Add meta box below the editor.
  */
 function kk_ai_editor_add_below_editor_meta_box() {
-    add_meta_box(
-        'ai_content_generator_below',
-        'AI Editor Log',
-        'kk_ai_editor_below_editor_meta_box_callback',
-        'post',
-        'normal', // This places it below the editor
-        'high'    // High priority to place it above other meta boxes
-    );
+    if (kk_ai_editor_user_has_min_access()) {
+        add_meta_box(
+            'ai_content_generator_below',
+            'AI Editor Log',
+            'kk_ai_editor_below_editor_meta_box_callback',
+            'post',
+            'normal', // This places it below the editor
+            'high'    // High priority to place it above other meta boxes
+        );
+    }
 }
 add_action('add_meta_boxes', 'kk_ai_editor_add_below_editor_meta_box');
 

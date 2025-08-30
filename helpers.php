@@ -177,6 +177,9 @@ function kk_ai_editor_below_editor_meta_box_callback($post) {
  * The main plugin settings page.
  */
 function kk_ai_editor_plugin_settings_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
     // Get the image content for the larger icon
     $icon_svg = 'data:image/svg+xml;base64,' . base64_encode(
         file_get_contents(plugin_dir_path(__FILE__) . 'assets/ai-editor-color.svg')
@@ -344,6 +347,87 @@ function kk_ai_editor_prompt_style_dropdown_callback() {
     echo '<p class="description"><strong>Tidy</strong> - Light style smoothing: fix errors, tighten wording, split run-ons or combine choppy sentences, and soften rough transitions within paragraphs while preserving meaning, tone, and structure. No invented content or reordering of sections. 🧹</p>';
     echo '<p class="description"><strong>Fluent</strong> - Editorial rewrite within bounds: fix errors and elevate style and flow by rewriting sentences for clarity and rhythm, replacing awkward phrasing, and reordering sentences (and sparingly paragraphs within a section) to improve logic. Preserve meaning, facts, and voice of the author. 🏄</p>';
     echo '</div>';
+}
+
+/**
+ * Get allowed capability values mapped by label keys.
+ *
+ * The values are capabilities representing the minimum access for using the plugin.
+ * - author => publish_posts
+ * - editor => edit_others_posts (default)
+ * - administrator => manage_options
+ *
+ * @return array
+ */
+function kk_ai_editor_get_allowed_capabilities() {
+    // Note: Contributors and subscribers are intentionally excluded
+    return [
+        'author'         => 'publish_posts',
+        'editor'         => 'edit_others_posts',
+        'administrator'  => 'manage_options',
+    ];
+}
+
+/**
+ * Resolve the configured minimum capability, falling back to editor level.
+ *
+ * @return string Capability string
+ */
+function kk_ai_editor_get_min_capability() {
+    $allowed = kk_ai_editor_get_allowed_capabilities();
+    $default_cap = $allowed['editor'];
+    $stored = get_option('kk_ai_editor_min_capability', $default_cap);
+    // Ensure stored value is one of allowed capabilities
+    return in_array($stored, array_values($allowed), true) ? $stored : $default_cap;
+}
+
+/**
+ * Callback for the minimum access capability dropdown.
+ */
+function kk_ai_editor_min_capability_dropdown_callback() {
+    $allowed = kk_ai_editor_get_allowed_capabilities();
+    $selected = kk_ai_editor_get_min_capability();
+
+    echo '<select name="kk_ai_editor_min_capability">';
+    foreach ($allowed as $role_key => $capability) {
+        $label = '';
+        switch ($role_key) {
+            case 'author':
+                $label = 'Author';
+                break;
+            case 'editor':
+                $label = 'Editor';
+                break;
+            case 'administrator':
+                $label = 'Administrator';
+                break;
+        }
+        printf(
+            '<option value="%s" %s>%s</option>',
+            esc_attr($capability),
+            selected($selected, $capability, false),
+            esc_html($label)
+        );
+    }
+    echo '</select>';
+    echo '<p class="description">Select the lowest user role required to use AI editing.</p>';
+}
+
+/**
+ * Determine whether current user has minimum access to use the plugin features.
+ * Always requires at least 'publish_posts' (excludes contributors/subscribers),
+ * plus the configured minimum capability.
+ *
+ * @return bool
+ */
+function kk_ai_editor_user_has_min_access() {
+    if (!is_user_logged_in()) {
+        return false;
+    }
+    if (!current_user_can('publish_posts')) {
+        return false;
+    }
+    return current_user_can(kk_ai_editor_get_min_capability());
 }
 
 ////////////////////////////////////
