@@ -3,7 +3,7 @@
  * Plugin Name: AI Editor at Your Service
  * Plugin URI: https://wpwork.shop/
  * Description: Your friendly AI editor - takes your post content and edits it.
- * Version: 0.26
+ * Version: 0.27
  * Author: Karol K
  * Author URI: https://wpwork.shop/
  * License: GPL-2.0
@@ -249,24 +249,26 @@ function kk_ai_editor_process_content_generation($process_id) {
                 
                 $data['content'] .= $generated_edit . "\n\n";
                 
-                // Parse sections - updated regex for dash-style headers
-                // Do this to break up the content into subheads for the next sections
+                // Parse sections (Setext H2). If none, skip sections step.
                 if (preg_match_all('/^([^\n]+)\n-+\n(.*?)(?=\n[^\n]+\n-+|\z)/ms', $data['pre_edit_content'], $matches)) {
                     $data['sections'] = array_map(function($title, $content) {
                         return $title . "\n" . str_repeat('-', strlen($title)) . "\n" . $content;
                     }, $matches[1], $matches[2]);
+
+                    //kk_ai_editor_ai_log('Found ' . count($data['sections']) . ' sections');
+                    //kk_ai_editor_ai_log('Sections: ' . print_r($data['sections'], true));
                     
-                    //kk_ai_editor_ai_log('Found sections: ' . print_r($data['sections'], true));
+                    // Next: process sections
+                    $data['step'] = 'sections';
+                    $data['progress'] = 15;
                 } else {
-                    kk_ai_editor_ai_log('No sections found in post: ' . $data['pre_edit_content']); // Debug log
-                    throw new Exception('No sections found in post');
+                    //kk_ai_editor_ai_log('No sections found; skipping sections step and moving to summary.');
+
+                    // No subheads: we already sent full content as intro, finalize
+                    $data['sections'] = array();
+                    $data['step'] = 'summary';
+                    $data['progress'] = 95;
                 }
-                
-                //kk_ai_editor_ai_log('Found ' . count($data['sections']) . ' sections');
-                
-                // Set next step, % progress
-                $data['step'] = 'sections';
-                $data['progress'] = 15;
 
                 // Save progress
                 if (!update_option($option_name, $data, false)) {
