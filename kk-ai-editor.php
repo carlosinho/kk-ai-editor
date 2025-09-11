@@ -3,7 +3,7 @@
  * Plugin Name: AI Editor at Your Service
  * Plugin URI: https://wpwork.shop/
  * Description: Your friendly AI editor - takes your post content and edits it.
- * Version: 0.27
+ * Version: 0.28
  * Author: Karol K
  * Author URI: https://wpwork.shop/
  * License: GPL-2.0
