@@ -98,13 +98,6 @@ EDITING GOALS (in priority order)
 2) Improve style and flow WITHOUT CHANGING MEANING OR EMPHASIS: tighten wording, remove redundancy, smooth transitions, vary sentence length/structure, split run-ons, and combine overly choppy sentences when helpful.
 3) PRESERVE author voice: keep tone, register, humor, idioms, rhetorical choices, and point of view. Maintain use (or avoidance) of contractions.
 
-NON-NEGOTIABLE CONSTRAINTS
-- NO TYPOGRAPHY CHANGES. Do not convert straight quotes to smart quotes or vice versa. Do not change apostrophes, ellipses, hyphens/dashes, or introduce non-breaking spaces. Do not alter spacing around dashes.
-- DO NOT add any new em dashes. Do not “fix” instances with spaces on either side of a dash.
-- Do not change facts, claims, names, figures, or legal/technical wording. Do not invent content or examples.
-- Oxford/serial comma: follow the source (do not add/remove solely for style).
-- Do not newly introduce any of the following (retain only if they already appear in the source): whether, delve, digital age, cutting-edge, leverage, proactive, pivotal, seamless, fast-paced, game-changer, quest, resilient, thrill, unravel, embark, notwithstanding, ostensibly, consequently, outset
-
 WHAT TO EDIT VS. PRESERVE
 - **Headings/Subheads:** KEEP THE ORIGINAL LEVEL MARKERS (#, ##, etc.) and capitalization exactly; you may fix non-case typos and punctuation. Do not rename or recase.
 - **Markdown/HTML:** Keep all markup unchanged; edit only the human-readable text inside it.
@@ -116,6 +109,13 @@ WHAT TO EDIT VS. PRESERVE
 - **URLs, emails, file paths, IDs:** Leave unchanged.
 - **Numbers:** Leave numerals vs. words as in the source; fix only obvious typos.
 - **Whitespace & line breaks:** Preserve exactly, except for spacing required by punctuation or minimal adjustments that result from sentence-level fixes. Do not reflow or join paragraphs.
+
+NON-NEGOTIABLE CONSTRAINTS
+- NO TYPOGRAPHY CHANGES. Do not convert straight quotes to smart quotes or vice versa. Do not change apostrophes, ellipses, hyphens/dashes, or introduce non-breaking spaces. Do not alter spacing around dashes.
+- DO NOT add any new em dashes. Do not “fix” instances with spaces on either side of a dash.
+- Do not change facts, claims, names, figures, or legal/technical wording. Do not invent content or examples.
+- Oxford/serial comma: follow the source (do not add/remove solely for style).
+- Do not newly introduce any of the following (retain only if they already appear in the source): whether, delve, digital age, cutting-edge, leverage, proactive, pivotal, seamless, fast-paced, game-changer, quest, resilient, thrill, unravel, embark, notwithstanding, ostensibly, consequently, outset
 
 OUTPUT
 Return the revised text only (no comments or explanations), with the same structure and headings.';
@@ -155,13 +155,6 @@ EDITING GOALS (in priority order)
 2) Improve style and flow without changing meaning or emphasis: rewrite sentences for clarity and rhythm; reduce redundancy; smooth transitions; vary sentence length and structure; split run-ons; combine choppy sentences; tighten or expand phrasing where helpful. You may replace vague or awkward wording with clearer alternatives that preserve the same sense and tone.
 3) Preserve author voice: maintain tone, register, humor, idioms, rhetorical choices, point of view, and use (or avoidance) of contractions.
 
-NON-NEGOTIABLE CONSTRAINTS
-- NO TYPOGRAPHY CHANGES. Do not convert straight quotes to smart quotes or vice versa; do not change apostrophes, ellipses, hyphens/dashes, or introduce non-breaking spaces. Do not alter spacing around dashes.
-- DO NOT add any em dashes. Do not "fix" instances with spaces on either side of a dash.
-- Do not change facts, claims, names, figures, dates, or legal/technical wording. Do not invent content or examples.
-- Oxford/serial comma: follow the source (do not add/remove solely for style).
-- Do not newly introduce any of the following (retain only if they already appear in the source): whether, delve, digital age, cutting-edge, leverage, proactive, pivotal, seamless, fast-paced, game-changer, quest, resilient, thrill, unravel, embark, notwithstanding, ostensibly, consequently, outset
-
 WHAT YOU MAY CHANGE VS. MUST PRESERVE
 - Headings/Subheads: KEEP THE ORIGINAL LEVEL MARKERS (#, ##, etc.) and capitalization exactly; you may fix non-case typos and punctuation. Do not rename or recase.
 - Structure: You may reorder sentences - and, sparingly, paragraphs within the same section - when it clearly improves flow or logic. Do not create, delete, rename, or reorder sections.
@@ -173,6 +166,13 @@ WHAT YOU MAY CHANGE VS. MUST PRESERVE
 - URLs, emails, file paths, IDs: Leave unchanged.
 - Numbers: Keep numerals vs. words as in the source; fix only obvious typos.
 - Whitespace & line breaks: Preserve where possible; adjust only as needed when you split/merge/reorder sentences. Do not collapse multiple blank lines or reflow entire sections.
+
+NON-NEGOTIABLE CONSTRAINTS
+- NO TYPOGRAPHY CHANGES. Do not convert straight quotes to smart quotes or vice versa; do not change apostrophes, ellipses, hyphens/dashes, or introduce non-breaking spaces. Do not alter spacing around dashes.
+- DO NOT add any em dashes. Do not "fix" instances with spaces on either side of a dash.
+- Do not change facts, claims, names, figures, dates, or legal/technical wording. Do not invent content or examples.
+- Oxford/serial comma: follow the source (do not add/remove solely for style).
+- Do not newly introduce any of the following (retain only if they already appear in the source): whether, delve, digital age, cutting-edge, leverage, proactive, pivotal, seamless, fast-paced, game-changer, quest, resilient, thrill, unravel, embark, notwithstanding, ostensibly, consequently, outset
 
 OUTPUT
 Return the revised text only (no comments or explanations), with the same structure and headings.';

@@ -206,6 +206,25 @@ function kk_ai_editor_process_content_generation($process_id) {
                     $pre_intro_content = trim($data['pre_edit_content']);
                 }
 
+                // If content starts with a section (no intro), skip intro and go straight to sections
+                if ($pre_intro_content === '') {
+                    if (preg_match_all('/^([^\n]+)\n-+\n(.*?)(?=\n[^\n]+\n-+|\z)/ms', $data['pre_edit_content'], $matches)) {
+                        $data['sections'] = array_map(function($title, $content) {
+                            return $title . "\n" . str_repeat('-', strlen($title)) . "\n" . $content;
+                        }, $matches[1], $matches[2]);
+
+                        // Proceed directly to sections processing
+                        $data['step'] = 'sections';
+                        $data['progress'] = 15;
+
+                        if (!update_option($option_name, $data, false)) {
+                            kk_ai_editor_ai_log('Failed to save progress when skipping intro. Data: ' . print_r($data, true));
+                            throw new Exception('Failed to save progress when skipping intro');
+                        }
+                        break;
+                    }
+                }
+
                 // PREPARE EDIT PROMPT
                 $prompt = $working_user_prompt . $pre_intro_content;
                 
